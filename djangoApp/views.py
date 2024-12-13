@@ -11,8 +11,9 @@ from django.core.files.storage import default_storage
 from djangoApp.models import PositionPoint, Image, Task
 from django.shortcuts import get_object_or_404
 import os
-from .tasks import lanshu_soil_remove, lanshu_feature_select, task_picture_synthesis
+from .tasks import lanshu_soil_remove, lanshu_feature_select, task_picture_synthesis, task_collected_data_processor
 from django.conf import settings
+
 # Create your views here.
 @csrf_exempt
 def API_SEND_POINTS(request):
@@ -136,6 +137,49 @@ def API_IMAGE_SYNTHESIS(request):
         saved_files.append(file_path)
     # print(saved_files)
     task = task_picture_synthesis.delay(files=saved_files)
+    return JsonResponse({'task_id': task.id}, status=202)
+
+@csrf_exempt
+def API_COLLECTED_DATA_PROCESSOR(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+    uploaded_files = request.FILES.getlist('files')
+    upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
+    saved_files = []
+    # print(uploaded_files)
+    # 遍历上传的文件并保存
+    for file in uploaded_files:
+        # 获取原文件名和文件扩展名
+        filename, file_extension = os.path.splitext(file.name)
+
+        # 生成一个随机字符串作为文件名的一部分
+        random_str = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+
+        # 新的文件名：原文件名 + 随机数 + 扩展名
+        new_filename = f"{filename}_{random_str}{file_extension}"
+
+        # 完整的文件路径
+        file_path = os.path.join(upload_dir, new_filename)
+
+        # 保存文件到指定目录
+        with open(file_path, 'wb+') as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+
+        saved_files.append(file_path)
+    # print(saved_files)
+    def sort_files(filename):
+        if filename.endswith('.csv'):
+            return 1  # 最低的优先级，意味着排在最前
+        elif filename.endswith('.tif'):
+            return 2
+        elif filename.endswith('.mat'):
+            return 3  # 最高的优先级，意味着排在最后
+        return 4  # 对于非指定文件类型，给予默认值
+
+    sorted_files = sorted(saved_files, key=sort_files)
+    print(sorted_files)
+    task = task_collected_data_processor.delay(files=sorted_files)
     return JsonResponse({'task_id': task.id}, status=202)
 
 @csrf_exempt

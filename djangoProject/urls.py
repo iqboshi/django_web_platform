@@ -26,6 +26,7 @@ urlpatterns = [
     path("API_DELETE_POINTS/", views.API_DELETE_POINTS),
     path("API_EDIT_POINTS/", views.API_EDIT_POINTS),
     path("API_IMAGE_SYNTHESIS/", views.API_IMAGE_SYNTHESIS),
+    path("API_COLLECTED_DATA_PROCESSOR/", views.API_COLLECTED_DATA_PROCESSOR),
     path("API_SOIL_REMOVE/", views.API_SOIL_REMOVE),
     path("API_FEATURE_SELECT/", views.API_FEATURE_SELECT),
     path('task-progress/<str:task_id>/', views.get_task_progress, name='get_task_progress'),
